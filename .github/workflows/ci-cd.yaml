@@ -9,7 +9,6 @@ on:
 jobs:
   build-and-test-backend:
     runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -25,11 +24,13 @@ jobs:
 
       - name: Build backend
         working-directory: ./expensy_backend
+        env:
+          DATABASE_URI: ${{ secrets.DATABASE_URI }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
         run: npm run build
 
   build-and-test-frontend:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -45,4 +46,6 @@ jobs:
 
       - name: Build frontend
         working-directory: ./expensy_frontend
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         run: npm run build
