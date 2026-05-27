@@ -1,0 +1,23 @@
+backend:
+  image: nataexpensyacr.azurecr.io/expensy-backend:latest
+  port: 8706
+  replicas: 1
+
+frontend:
+  image: nataexpensyacr.azurecr.io/expensy-frontend:latest
+  port: 3000
+  replicas: 1
+
+mongo:
+  image: mongo:latest
+  port: 27017
+
+redis:
+  image: redis:latest
+  port: 6379
+
+secrets:
+  databaseUri: REPLACE_WITH_YOUR_DATABASE_URI
+  redisPassword: REPLACE_WITH_YOUR_REDIS_PASSWORD
+  mongoRootUsername: REPLACE_WITH_YOUR_MONGO_USERNAME
+  mongoRootPassword: REPLACE_WITH_YOUR_MONGO_PASSWORD

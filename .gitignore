@@ -3,3 +3,11 @@
 node_modules/
 dist/
 .DS_Store
+helm/expensy/values.secret.yaml
+# Terraform
+infrastructure/terraform/.terraform/
+infrastructure/terraform/.terraform.lock.hcl
+infrastructure/terraform/terraform.tfstate
+infrastructure/terraform/terraform.tfstate.backup
+infrastructure/terraform/*.tfstate
+infrastructure/terraform/*.tfstate.backup
