@@ -1,0 +1,110 @@
+# Monitoring & Logging Documentation
+
+## Overview
+This project uses Prometheus + Grafana for metrics and Azure Monitor for logging.
+
+## 1. Prometheus & Grafana Setup
+
+### Install on AKS cluster:
+```bash
+helm repo add prometheus-community \
+  https://prometheus-community.github.io/helm-charts
+
+helm repo update
+
+helm install monitoring \
+  prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --create-namespace \
+  -f monitoring/prometheus-values.yaml
+```
+
+### Access Grafana:
+```bash
+# Get password
+kubectl --namespace monitoring get secrets monitoring-grafana \
+  -o jsonpath="{.data.admin-password}" | base64 -d ; echo
+
+# Port forward
+kubectl --namespace monitoring port-forward \
+  svc/monitoring-grafana 3000:80
+```
+
+Then open: http://localhost:3000
+- Username: admin
+- Password: (from command above)
+
+### What Prometheus scrapes:
+- expensy-backend  → backend.default.svc.cluster.local:8706
+- expensy-frontend → frontend.default.svc.cluster.local:3000
+- All Kubernetes nodes and pods automatically
+
+### Grafana Dashboards:
+- Kubernetes / Compute Resources / Cluster → CPU, Memory
+- Kubernetes / Compute Resources / Pod → per pod metrics
+- Sample dashboard: monitoring/grafana-dashboard.json
+
+## 2. Alertmanager
+Alertmanager is included in kube-prometheus-stack.
+It handles alerts fired by Prometheus.
+
+### View alerts:
+```bash
+kubectl --namespace monitoring port-forward \
+  svc/monitoring-kube-prometheus-alertmanager 9093
+```
+Then open: http://localhost:9093
+
+## 3. Azure Monitor (Logging)
+
+### Enable Container Insights:
+```bash
+az aks enable-addons \
+  --resource-group nata-expensy-rg \
+  --name nata-expensy-cluster \
+  --addons monitoring
+```
+
+### View logs in Azure Portal:
+1. Go to Azure Portal
+2. Navigate to nata-expensy-rg
+3. Click nata-expensy-cluster
+4. Click "Logs" in left menu
+5. Use KQL queries:
+
+```kql
+# View all container logs
+ContainerLog
+| where TimeGenerated > ago(1h)
+| project TimeGenerated, ContainerName, LogEntry
+| order by TimeGenerated desc
+
+# View backend logs only
+ContainerLog
+| where ContainerName contains "backend"
+| project TimeGenerated, LogEntry
+| order by TimeGenerated desc
+
+# View errors only
+ContainerLog
+| where LogEntry contains "error"
+| project TimeGenerated, ContainerName, LogEntry
+```
+
+### View via kubectl:
+```bash
+# View backend logs
+kubectl logs -l app=backend --tail=100
+
+# View frontend logs
+kubectl logs -l app=frontend --tail=100
+
+# Stream live logs
+kubectl logs -l app=backend -f
+```
+
+## 4. File Structure
+monitoring/
+├── prometheus-values.yaml  ← Prometheus and Grafana configuration
+├── grafana-dashboard.json  ← Sample Grafana dashboard
+└── README.md               
