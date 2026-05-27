@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: expensy-config
+data:
+  REDIS_HOST: {{ .Values.config.redisHost }}
+  REDIS_PORT: "{{ .Values.config.redisPort }}"
+  PORT: "{{ .Values.backend.port }}"
+  NEXT_PUBLIC_API_URL: http://backend:{{ .Values.backend.port }}

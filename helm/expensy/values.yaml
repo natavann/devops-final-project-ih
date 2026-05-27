@@ -16,6 +16,10 @@ redis:
   image: redis:latest
   port: 6379
 
+config:
+  redisHost: redis
+  redisPort: "6379"
+
 secrets:
   databaseUri: REPLACE_WITH_YOUR_DATABASE_URI
   redisPassword: REPLACE_WITH_YOUR_REDIS_PASSWORD

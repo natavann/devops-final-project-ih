@@ -19,7 +19,10 @@ spec:
             - containerPort: {{ .Values.frontend.port }}
           env:
             - name: NEXT_PUBLIC_API_URL
-              value: http://backend:{{ .Values.backend.port }}
+              valueFrom:
+                configMapKeyRef:
+                  name: expensy-config
+                  key: NEXT_PUBLIC_API_URL
 ---
 apiVersion: v1
 kind: Service

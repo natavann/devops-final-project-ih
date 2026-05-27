@@ -19,16 +19,25 @@ spec:
             - containerPort: {{ .Values.backend.port }}
           env:
             - name: PORT
-              value: "{{ .Values.backend.port }}"
+              valueFrom:
+                configMapKeyRef:
+                  name: expensy-config
+                  key: PORT
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: expensy-config
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: expensy-config
+                  key: REDIS_PORT
             - name: DATABASE_URI
               valueFrom:
                 secretKeyRef:
                   name: expensy-secrets
                   key: DATABASE_URI
-            - name: REDIS_HOST
-              value: redis
-            - name: REDIS_PORT
-              value: "{{ .Values.redis.port }}"
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
