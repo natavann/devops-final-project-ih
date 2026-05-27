@@ -4,8 +4,13 @@ metadata:
   name: expensy-ingress
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - nata-expensy.azure.ironlabs.online
+      secretName: expensy-tls
   rules:
     - host: nata-expensy.azure.ironlabs.online
       http:
