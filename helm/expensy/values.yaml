@@ -25,3 +25,6 @@ secrets:
   redisPassword: REPLACE_WITH_YOUR_REDIS_PASSWORD
   mongoRootUsername: REPLACE_WITH_YOUR_MONGO_USERNAME
   mongoRootPassword: REPLACE_WITH_YOUR_MONGO_PASSWORD
+
+ingress:
+  host: nata-expensy.azure.ironlabs.online
