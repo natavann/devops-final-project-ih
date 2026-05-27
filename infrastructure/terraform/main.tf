@@ -52,18 +52,3 @@ resource "azurerm_role_assignment" "aks_acr" {
   scope                            = azurerm_container_registry.expensy.id
   skip_service_principal_aad_check = true
 }
-
-# DNS Zone
-resource "azurerm_dns_zone" "expensy" {
-  name                = var.dns_zone_name
-  resource_group_name = azurerm_resource_group.expensy.name
-}
-
-# DNS A Record
-resource "azurerm_dns_a_record" "expensy" {
-  name                = var.dns_record_name
-  zone_name           = azurerm_dns_zone.expensy.name
-  resource_group_name = azurerm_resource_group.expensy.name
-  ttl                 = 300
-  records             = ["1.2.3.4"]
-}
