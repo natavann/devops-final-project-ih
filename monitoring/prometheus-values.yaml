@@ -1,0 +1,22 @@
+prometheus:
+  prometheusSpec:
+    scrapeInterval: 30s
+    evaluationInterval: 30s
+    additionalScrapeConfigs:
+      - job_name: 'expensy-backend'
+        static_configs:
+          - targets: ['backend.default.svc.cluster.local:8706']
+        metrics_path: /metrics
+
+      - job_name: 'expensy-frontend'
+        static_configs:
+          - targets: ['frontend.default.svc.cluster.local:3000']
+
+grafana:
+  enabled: true
+  adminPassword: admin
+  service:
+    type: ClusterIP
+
+alertmanager:
+  enabled: true
