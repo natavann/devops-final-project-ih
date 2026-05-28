@@ -1,157 +1,543 @@
-<!-- Final Project: End-to-End DevOps Deployment -->
+# Expensy — End-to-End DevOps Deployment
 
-## Lesson Overview :pencil2:
+## Overview
+Expensy is an expense tracker application with a Node.js/Express backend,
+a Next.js frontend, a MongoDB database, and Redis for caching.
 
-In this project, we will focus on the hands-on implementation of the learnings throughout this program, where you will gain practical insights while setting up the entire DevOps cycle and deploying applications using acquired best practices. 
+This repository demonstrates a full DevOps lifecycle:
+local development → containerization → CI/CD → cloud deployment → monitoring → security.
 
-<br>
+**Live Application:** https://nata-expensy.azure.ironlabs.online
 
-## Learning Objectives :notebook:
+---
 
-By the end of this project, you will: 
+## Project Structure
 
-1. Apply DevOps practices to a real-world project in a production environment.
-2. Build an effective CI/CD pipeline to automate delivery.
-3. Automate provisioning, configuration and infrastructure management using Terraform and Ansible. 
-4. Deploy and manage containerized applications using Kubernetes. 
-5. Integrate applications with Managed Kubernetes Service and other cloud services
-6. Set up monitoring and create dashboards using Grafana and Prometheus
-7. Resolve issues arising during the entire cycle using best practices
+```
+devops-final-project-ih/
+├── expensy_backend/          ← Node.js/Express/TypeScript backend
+├── expensy_frontend/         ← Next.js frontend
+├── infrastructure/           ← Kubernetes manifests + Terraform
+│   ├── terraform/            ← IaC for AKS cluster on Azure
+│   ├── backend-deployment.yaml
+│   ├── backend-service.yaml
+│   ├── frontend-deployment.yaml
+│   ├── frontend-service.yaml
+│   ├── mongo-deployment.yaml
+│   ├── mongo-service.yaml
+│   ├── redis-deployment.yaml
+│   ├── redis-service.yaml
+│   ├── configmap.yaml
+│   ├── secrets.yaml
+│   ├── ingress.yaml
+│   ├── cluster-issuer.yaml
+│   ├── network-policy.yaml
+│   └── hpa.yaml
+├── helm/expensy/             ← Helm chart for deployment
+│   ├── Chart.yaml
+│   ├── values.yaml
+│   └── templates/
+├── monitoring/               ← Prometheus + Grafana config
+│   ├── monitoring-values.yaml
+│   └── grafana-dashboard.json
+├── docker-compose.yaml       ← Local development
+└── .github/workflows/
+    └── ci-cd.yaml            ← GitHub Actions pipeline
+```
 
-<br>
+---
 
-## Project Highlights :key:
+## Tech Stack
 
-### Product Management:
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js |
+| Backend | Node.js, Express, TypeScript |
+| Database | MongoDB |
+| Cache | Redis |
+| Containerization | Docker |
+| Orchestration | Kubernetes (AKS) |
+| IaC | Terraform |
+| Helm | Package manager for Kubernetes |
+| CI/CD | GitHub Actions |
+| Monitoring | Prometheus + Grafana + Azure Monitor |
+| Registry | Azure Container Registry (ACR) |
+| Ingress | Nginx Ingress Controller |
+| TLS | cert-manager + Let's Encrypt |
 
-1. This capstone project is a team project, where you will assume roles and work as a scrum team. 
-2. The following indicators will be helpful for the successful completion of your project:         
-    - The duration of one Sprint Cycle is 5 days. So, you will have three Sprint Cycles for this project.
-    - Start with identifying a Scrum Master within your team.
-    - Make sure to follow all scrum events like Sprint, Sprint Planning, Daily Scrum, Sprint Review, Sprint Retrospection.
-    - Plan a Sprint Review at the end of every Sprint Cycle.
-3. Your instructor will be the product owner. If you have any questions regarding the requirements or deliverables, you can address them to the Product Owner.
-4. **Suggestion:** Start with a Team Agreement 
-    - Decide your working hours
-    - Decide your definition of done
-    - Decide your team’s way of work
-    - Identify the time when you will have your scrum events like daily scrum, sprint review, and other scrum events 
-5. We will make use of Azure Boards (or JIRA boards or any other similar tool) to manage work
-6. Please ensure that you have your Daily Scrum and evening sync-up (daily retrospective) every day.
-7. The final sprint review and respective presentations will be held on the last day of the project (during the second half).
+---
 
-<br>
+## 1. Local Development Setup
 
-### Pre-requisites
+### Prerequisites
+- Node.js 20+
+- Docker + Docker Compose
+- Git
 
-1. You can use any cloud of your choice (AWS, Azure or Hybrid). Make sure to have an account with free-trial or an account with enough credit.
-2. Create a free account on the DockerHub registry. This account will be used to host docker images used in the project
+### Step 1 — Clone the repository
+```bash
+git clone https://github.com/natavann/devops-final-project-ih
+cd devops-final-project-ih
+```
 
-### Web Application Introduction
+### Step 2 — Create environment file
 
-This sample application is an Expense Tracker with four microservices, a backend built in node, frontend built with Next.js (Node based framework), along with a MongoDB database and Redis caching DB.
+Create `expensy_backend/.env` — never commit this file:
+```
+PORT=YOUR_BACKEND_PORT
+DATABASE_URI=YOUR_MONGODB_CONNECTION_STRING
+REDIS_HOST=YOUR_REDIS_HOST
+REDIS_PORT=YOUR_REDIS_PORT
+REDIS_PASSWORD=YOUR_REDIS_PASSWORD
+```
 
-[Clone this repository and share it with the team](https://github.com/saurabhd2106/devops-final-project.git)
+> The `.env` file is added to `.gitignore` and must never be committed to GitHub.
+> Real values are stored only on your local machine and in GitHub Secrets.
 
-Your task is to build a solution for this application that is scalable and can support zero to thousands of users. 
+### Step 3 — Start with Docker Compose (recommended)
+```bash
+docker-compose up --build
+```
 
-### Make sure to use the following:
+This starts all 4 services:
+- Frontend  → http://localhost:3001
+- Backend   → http://localhost:8706
+- MongoDB   → localhost:27017
+- Redis     → localhost:6379
 
-#### 1. Infrastructure as Code (IaC):
+### Step 4 — Run without Docker
 
-- Use Terraform, AWS CloudFormation, or another IaC tool to define your infrastructure.
+```bash
+# Start MongoDB and Redis containers
+docker start mongo redis
 
-#### 2. Your infrastructure should include:
+# Terminal 1 — Backend
+cd expensy_backend
+npm install
+npm run dev
 
-- Compute resources (e.g., EC2 instances, Kubernetes clusters).
-- Networking resources (e.g., VPC, subnets, security groups).
-- Storage resources (e.g., S3 buckets, RDS instances).
-- Continuous Integration/Continuous Deployment (CI/CD):
+# Terminal 2 — Frontend
+cd expensy_frontend
+npm install
+npm run dev
+```
 
-#### 3. Implement a CI/CD pipeline using tools such as Jenkins, GitLab CI, or GitHub Actions.
+### Problems fixed during local setup
+- Missing `dev` script in `package.json` → added `ts-node-dev --respawn src/server.ts`
+- Wrong `.env` format (`:` instead of `=`) → fixed to use `=`
+- Missing `dotenv.config()` in `redis.ts` → added to load env variables
+- `.env` was tracked by git → removed with `git rm --cached` and added to `.gitignore`
 
-The pipeline should:
-- Automatically build and test your application.
-- Deploy the application to a staging environment.
-- Deploy to production upon approval.
+---
 
-#### 4. Containerization and Orchestration:
-- Containerize your application using Docker.
-- Use Kubernetes or Docker Swarm for orchestration to ensure your application can scale horizontally.
+## 2. CI/CD Pipeline
 
-#### 5. Monitoring and Logging:
+### File: `.github/workflows/ci-cd.yaml`
 
-- Implement monitoring using tools like Prometheus, Grafana, or AWS CloudWatch.
+The pipeline triggers on every push to `main` branch:
 
-#### 6. Autoscaling:
+```
+Push to main branch
+        ↓
+Job 1: build-and-test-backend
+  → Checkout code
+  → Setup Node.js 20
+  → npm install
+  → npm run build
+        ↓
+Job 2: build-and-test-frontend
+  → Checkout code
+  → Setup Node.js 20
+  → npm install
+  → npm run build
+        ↓
+Job 3: deploy-to-aks (main branch only)
+  → Login to Azure
+  → Login to ACR
+  → Connect kubectl to AKS
+  → helm upgrade --install (secrets injected from GitHub Secrets)
+```
 
-- Configure autoscaling for your compute resources (e.g., AWS Auto Scaling groups, Kubernetes Horizontal Pod Autoscaler) to handle varying loads.
+### GitHub Secrets required
 
-#### 7. Security and Compliance:
+All sensitive values are stored in GitHub Secrets — never in code.
 
-- Implement best security practices, including network security (firewalls, security groups), data encryption, and IAM policies.
-- Ensure compliance with relevant standards (e.g., GDPR, HIPAA) as applicable.
+| Secret | Description |
+|--------|-------------|
+| DATABASE_URI | MongoDB connection string |
+| REDIS_PASSWORD | Redis password |
+| NEXT_PUBLIC_API_URL | Backend API URL |
+| MONGO_ROOT_USERNAME | MongoDB root username |
+| MONGO_ROOT_PASSWORD | MongoDB root password |
+| AZURE_CREDENTIALS | Azure service principal JSON |
 
-### Deliverables:
+### How to configure secrets
+1. Go to GitHub repo → **Settings**
+2. Click **Secrets and variables** → **Actions**
+3. Click **New repository secret**
+4. Add each secret from the table above
 
-#### 1. Infrastructure Code:
+> Secrets are injected into the pipeline at runtime via `${{ secrets.SECRET_NAME }}`.
+> They are never printed in logs or stored in any file.
 
-- Provide all IaC scripts and configuration files like Terraform scripts, AWS CloudFormation templates, Ansible playbooks, etc.
-- Include documentation explaining the infrastructure setup and how to deploy it.
+---
 
-#### 2. CI/CD Pipeline Configuration:
+## 3. Containerization
 
-- Provide the CI/CD pipeline configuration files like Jenkinsfile, GitHub Actions workflows, etc.
-- Include detailed documentation on how to set up and use the pipeline.
+### Dockerfiles
+- `expensy_backend/Dockerfile.backend`
+- `expensy_frontend/Dockerfile.frontend`
 
-#### 3. Application Containerization and Orchestration:
+### Multi-stage build
+Both Dockerfiles use multi-stage builds:
 
-- Provide Dockerfiles and Kubernetes/Docker Swarm configuration files.
-- Include documentation on how to build and deploy the containers.
+```
+Stage 1 (builder):
+  - Installs all dependencies
+  - Compiles TypeScript → JavaScript (backend)
+  - Builds Next.js app (frontend)
 
-#### 4. Monitoring and Logging Configuration:
+Stage 2 (production):
+  - Copies only compiled output
+  - Installs production dependencies only
+  - Result: smaller, more secure image
+```
 
-- Provide configuration files for monitoring and logging tools, including Prometheus configuration, Grafana dashboards, ELK stack configuration, etc.
-- Include documentation on how to set up and interpret the monitoring and logging data.
+### Build and push to ACR
+```bash
+# Login to ACR
+az acr login --name nataexpensyacr
 
-#### 5. Autoscaling Configuration:
+# Build for AMD64 (AKS runs AMD64, Mac M1/M2 is ARM64)
+docker buildx build --platform linux/amd64 \
+  -t nataexpensyacr.azurecr.io/expensy-backend:latest \
+  -f expensy_backend/Dockerfile.backend \
+  expensy_backend/ --push
 
-- Provide configuration files or scripts for autoscaling.
-- Include documentation explaining the autoscaling policies, criteria for scaling, how to simulate load to test autoscaling, commands to check the current scaling status, etc. 
+docker buildx build --platform linux/amd64 \
+  -t nataexpensyacr.azurecr.io/expensy-frontend:latest \
+  -f expensy_frontend/Dockerfile.frontend \
+  expensy_frontend/ --push
+```
 
-#### 6. Security and Compliance Documentation:
+---
 
-- Provide a security overview document detailing the measures implemented.
-- Include compliance checklists and how your solution adheres to them.
+## 4. Infrastructure — Terraform + AKS
 
-### Evaluation Criteria:
+### What Terraform creates
+- **Resource Group:** `nata-expensy-rg`
+- **AKS Cluster:** `nata-expensy-cluster` (2 nodes, availability zone 3, East US)
+- **ACR:** `nataexpensyacr` (private container registry)
+- **Standard Load Balancer**
+- **AcrPull role assignment** (allows AKS to pull from ACR without credentials)
 
-1. Scalability:
+### Deploy infrastructure
+```bash
+cd infrastructure/terraform
 
-- The solution should handle increasing loads efficiently.
-- Autoscaling should work as expected, without degrading performance.
-- Infrastructure should be able to scale horizontally (adding more instances) or vertically (upgrading existing instances) as needed.
+# Initialize Terraform
+terraform init
 
-2. Reliability:
+# Preview what will be created
+terraform plan
 
-- The CI/CD pipeline should deploy the application without errors.
-- Monitoring and logging should provide useful insights into the application’s health.
-- The pipeline should be ready for smooth integration of new code and features.
+# Create everything on Azure
+terraform apply
+```
 
-3. Security:
+### Connect kubectl to AKS
+```bash
+az aks get-credentials \
+  --resource-group nata-expensy-rg \
+  --name nata-expensy-cluster
 
-- The solution should follow best security practices.
-- Compliance with relevant standards should be documented.
+# Verify
+kubectl get nodes
+```
 
-4. Documentation:
+---
 
-- The documentation should be clear and comprehensive documentation for each component.
-- Ease of understanding and reproducibility must be considered while documenting all components. 
+## 5. Kubernetes Deployment
 
-<!-- ## Additional Resources :clipboard: 
+### Using Helm (recommended)
 
-If you would like to study these concepts before the class or would benefit from some remedial studying, please utilize the resources below: -->
+Secrets are passed at deploy time — never stored in files:
 
-<br>
+```bash
+# Install
+helm install expensy ./helm/expensy \
+  --set secrets.databaseUri="YOUR_DATABASE_URI" \
+  --set secrets.redisPassword="YOUR_REDIS_PASSWORD" \
+  --set secrets.mongoRootUsername="YOUR_MONGO_USERNAME" \
+  --set secrets.mongoRootPassword="YOUR_MONGO_PASSWORD"
 
-**Good luck!**
+# Upgrade
+helm upgrade expensy ./helm/expensy \
+  --set secrets.databaseUri="YOUR_DATABASE_URI" \
+  --set secrets.redisPassword="YOUR_REDIS_PASSWORD" \
+  --set secrets.mongoRootUsername="YOUR_MONGO_USERNAME" \
+  --set secrets.mongoRootPassword="YOUR_MONGO_PASSWORD"
+```
+
+> In CI/CD pipeline, these values come from GitHub Secrets automatically:
+> `--set secrets.redisPassword="${{ secrets.REDIS_PASSWORD }}"`
+
+### Using raw Kubernetes manifests
+```bash
+# Edit infrastructure/secrets.yaml with your real values first
+kubectl apply -f infrastructure/secrets.yaml
+kubectl apply -f infrastructure/
+```
+
+### Install Nginx Ingress Controller
+```bash
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+
+helm install ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx \
+  --create-namespace
+```
+
+### Verify deployment
+```bash
+kubectl get pods
+kubectl get services
+kubectl get ingress
+```
+
+### Expected output
+```
+NAME                    READY   STATUS
+backend-xxx             1/1     Running
+frontend-xxx            1/1     Running
+mongo-xxx               1/1     Running
+redis-xxx               1/1     Running
+```
+
+---
+
+## 6. Autoscaling (HPA)
+
+Horizontal Pod Autoscaler automatically scales backend and frontend pods based on CPU and memory usage.
+
+### Configuration
+| Setting | Value |
+|---------|-------|
+| Min replicas | 1 |
+| Max replicas | 5 |
+| CPU threshold | 50% |
+| Memory threshold | 70% |
+
+### Check autoscaling status
+```bash
+kubectl get hpa
+```
+
+Expected output:
+```
+NAME           REFERENCE             TARGETS                        MINPODS   MAXPODS   REPLICAS
+backend-hpa    Deployment/backend    cpu: 1%/50%, memory: 18%/70%   1         5         1
+frontend-hpa   Deployment/frontend   cpu: 3%/50%, memory: 22%/70%   1         5         1
+```
+
+When CPU exceeds 50% or memory exceeds 70%, Kubernetes automatically adds pods up to 5.
+When load decreases, pods are automatically removed down to minimum 1.
+
+---
+
+## 7. Monitoring & Logging
+
+### Install Prometheus + Grafana
+```bash
+helm repo add prometheus-community \
+  https://prometheus-community.github.io/helm-charts
+helm repo update
+
+helm install monitoring \
+  prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --create-namespace \
+  -f monitoring/monitoring-values.yaml
+```
+
+### Access Grafana
+```bash
+# Get admin password
+kubectl --namespace monitoring get secrets monitoring-grafana \
+  -o jsonpath="{.data.admin-password}" | base64 -d ; echo
+
+# Port forward
+kubectl --namespace monitoring port-forward \
+  svc/monitoring-grafana 3000:80
+```
+
+Open **http://localhost:3000**
+- Username: `admin`
+- Password: from command above
+
+### View dashboards
+- Go to **Dashboards** → **Browse**
+- Search **"Kubernetes / Compute Resources / Cluster"**
+- Shows CPU, Memory, Network per namespace
+- Your app runs in `default` namespace
+
+### Enable Azure Monitor
+```bash
+az aks enable-addons \
+  --resource-group nata-expensy-rg \
+  --name nata-expensy-cluster \
+  --addons monitoring
+```
+
+### View logs in Azure Portal
+1. Go to `nata-expensy-cluster` in Azure Portal
+2. Click **Monitor** → **Containers** tab
+3. Filter by container name
+
+### View logs via kubectl
+```bash
+# Backend logs
+kubectl logs -l app=backend --tail=100
+
+# Frontend logs
+kubectl logs -l app=frontend --tail=100
+
+# Live stream
+kubectl logs -l app=backend -f
+```
+
+---
+
+## 8. Security
+
+### TLS/HTTPS
+
+#### Install cert-manager
+```bash
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+
+helm install cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --create-namespace \
+  --set crds.enabled=true
+```
+
+#### Apply ClusterIssuer and Ingress
+```bash
+kubectl apply -f infrastructure/cluster-issuer.yaml
+kubectl apply -f infrastructure/ingress.yaml
+```
+
+#### Verify certificate
+```bash
+kubectl get certificate
+# NAME          READY
+# expensy-tls   True
+```
+
+### Network Policies
+```bash
+kubectl apply -f infrastructure/network-policy.yaml
+```
+
+Traffic restrictions:
+- `backend` → accessible only from `frontend`
+- `mongo` → accessible only from `backend`
+- `redis` → accessible only from `backend`
+- `frontend` → accessible from internet via Ingress only
+
+### Secret Management
+
+I follow a 3-layer approach — real passwords are NEVER in code:
+
+```
+Layer 1 — Code (GitHub):
+  Placeholder values only (YOUR_PASSWORD, REPLACE_WITH_*)
+  Safe to commit ✅
+
+Layer 2 — GitHub Secrets:
+  Real values stored encrypted in GitHub
+  Used by CI/CD pipeline at deploy time
+  Never visible in logs or files ✅
+
+Layer 3 — Kubernetes Secrets:
+  Real values stored encrypted in K8s etcd
+  Accessed by pods via secretKeyRef only ✅
+```
+
+### IAM
+- AKS uses **SystemAssigned managed identity** (no root credentials)
+- **AcrPull role** assigned via Terraform (AKS pulls images from ACR without credentials)
+
+---
+
+## 9. Architecture
+
+```
+Developer pushes code
+        ↓
+GitHub Actions (CI/CD)
+  → builds backend + frontend
+  → deploys via Helm to AKS
+  → secrets injected from GitHub Secrets vault
+        ↓
+Azure AKS Cluster
+        ↓
+Internet → Azure Load Balancer
+                ↓
+         Nginx Ingress Controller
+         (HTTPS via cert-manager + Let's Encrypt)
+                ↓
+    ┌──────────────────────────────┐
+    │                              │
+Frontend Pod                Backend Pod
+(Next.js)                (Node/Express)
+                            ↓       ↓
+                       MongoDB    Redis
+                         Pod       Pod
+    └──────────────────────────────┘
+            ↑
+  ACR (nataexpensyacr.azurecr.io)
+  Private registry - AKS pulls via AcrPull role
+
+Monitoring:
+  Prometheus → scrapes metrics from pods
+  Grafana    → visualizes metrics
+  Azure Monitor → container logs
+
+Autoscaling:
+  HPA → scales backend/frontend 1-5 pods
+        based on CPU (50%) and memory (70%)
+```
+
+---
+
+## Troubleshooting
+
+### Pods not starting
+```bash
+kubectl describe pod <pod-name>
+kubectl logs <pod-name>
+```
+
+### Certificate not issuing
+```bash
+kubectl describe certificate expensy-tls
+kubectl get challenges
+```
+
+### Helm deployment failing
+```bash
+helm status expensy
+helm history expensy
+```
+
+### Check all resources
+```bash
+kubectl get all
+kubectl get all -n monitoring
+kubectl get all -n ingress-nginx
+kubectl get all -n cert-manager
+```
